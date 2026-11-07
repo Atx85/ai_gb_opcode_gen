@@ -24,6 +24,31 @@ pub struct OpcodeInfo {
     pub cycles: Vec<u32>,
     pub operands: Vec<OperandInfo>,
     pub immediate: bool,
+    pub flags: FlagEffects,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FlagEffects {
+    #[serde(rename = "Z")]
+    pub z: FlagEffect,
+    #[serde(rename = "N")]
+    pub n: FlagEffect,
+    #[serde(rename = "H")]
+    pub h: FlagEffect,
+    #[serde(rename = "C")]
+    pub c: FlagEffect,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlagEffect {
+    #[serde(rename = "-")]
+    Unchanged,
+    #[serde(rename = "0")]
+    Clear,
+    #[serde(rename = "1")]
+    Set,
+    #[serde(alias = "Z", alias = "N", alias = "H", alias = "C")]
+    Computed,
 }
 
 #[derive(Deserialize, Debug)]
@@ -121,6 +146,11 @@ fn main() {
     code.push_str("pub enum FlagCondition { NZ, Z, NC, C }\n\n");
 
     code.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
+    code.push_str("pub enum FlagEffect { Unchanged, Clear, Set, Computed }\n\n");
+    code.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
+    code.push_str("pub struct FlagEffects { pub z: FlagEffect, pub n: FlagEffect, pub h: FlagEffect, pub c: FlagEffect }\n\n");
+
+    code.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
     code.push_str("pub enum Operand {\n");
     code.push_str("    Reg8(Reg8),\n    Reg16(Reg16),\n");
     code.push_str("    IndirectHL { inc: bool, dec: bool },\n");
@@ -152,6 +182,7 @@ fn main() {
     code.push_str("    pub bytes: u8,\n");
     code.push_str("    pub cycles: &'static [u32],\n");
     code.push_str("    pub operands: &'static [Operand],\n");
+    code.push_str("    pub flags: FlagEffects,\n");
     code.push_str("}\n\n");
 
     // Helper closure to write out flat 256-element opcode arrays
@@ -167,6 +198,10 @@ fn main() {
                 };
 
                 let cycles_str = format!("&{:?}", info.cycles);
+                let flags_str = format!(
+                    "FlagEffects {{ z: FlagEffect::{:?}, n: FlagEffect::{:?}, h: FlagEffect::{:?}, c: FlagEffect::{:?} }}",
+                    info.flags.z, info.flags.n, info.flags.h, info.flags.c
+                );
 
                 // Convert each OperandInfo into its Rust enum representation textually
                 let mut operands_tokens = String::from("&[");
@@ -189,12 +224,12 @@ fn main() {
                 operands_tokens.push_str("]");
 
                 code_str.push_str(&format!(
-                    "    /* {} */ OpcodeInfoGen {{ mnemonic: Mnemonic::{}, bytes: {}, cycles: {}, operands: {} }},\n",
-                    key, safe_mnemonic, info.bytes, cycles_str, operands_tokens
+                    "    /* {} */ OpcodeInfoGen {{ mnemonic: Mnemonic::{}, bytes: {}, cycles: {}, operands: {}, flags: {} }},\n",
+                    key, safe_mnemonic, info.bytes, cycles_str, operands_tokens, flags_str
                 ));
             } else {
                 code_str.push_str(&format!(
-                    "    /* {} */ OpcodeInfoGen {{ mnemonic: Mnemonic::NOP, bytes: 1, cycles: &[4], operands: &[] }},\n",
+                    "    /* {} */ OpcodeInfoGen {{ mnemonic: Mnemonic::NOP, bytes: 1, cycles: &[4], operands: &[], flags: FlagEffects {{ z: FlagEffect::Unchanged, n: FlagEffect::Unchanged, h: FlagEffect::Unchanged, c: FlagEffect::Unchanged }} }},\n",
                     key
                 ));
             }

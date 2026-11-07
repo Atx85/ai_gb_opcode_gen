@@ -15,8 +15,8 @@ The instruction set architecture (ISA) metadata used to generate these structure
 ## 🛠️ How It Works
 
 1. **`Opcodes.json`** is read at build/generation time.
-2. The Rust generation script maps raw string-based operands and mnemonics into strongly-typed Rust enums (`Reg8`, `Reg16`, `Operand`, `Mnemonic`).
-3. It writes out **`opcodes_gen.rs`**, which contains flat, zero-overhead $O(1)$ static arrays (`UNPREFIXED_OPCODES` and `CB_PREFIXED_OPCODES`) for all 512 Game Boy instructions.
+2. The Rust generation script maps raw string-based operands, mnemonics, and flag effects into strongly-typed Rust enums and structs (`Reg8`, `Reg16`, `Operand`, `Mnemonic`, `FlagEffect`, and `FlagEffects`).
+3. It writes out **`opcodes_gen.rs`**, which contains flat, zero-overhead $O(1)$ static arrays (`UNPREFIXED_OPCODES` and `CB_PREFIXED_OPCODES`) for all 512 Game Boy instructions. Each opcode includes the effect on Z, N, H, and C: unchanged, cleared, set, or calculated by the instruction.
 
 ## 🚀 Usage
 
